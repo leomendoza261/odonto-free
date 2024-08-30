@@ -1,88 +1,87 @@
-// This file contains type definitions for your data.
-// It describes the shape of the data, and what data type each property should accept.
-// For simplicity of teaching, we're manually defining these types.
-// However, these types are generated automatically if you're using an ORM such as Prisma.
-export type User = {
+// Definición del tipo para la tabla de Pacientes
+export type Pacientes = {
   id: string;
-  name: string;
+  dni: string;
+  nombre: string;
+  apellido: string;
+  tipo_sangre_id: string;
+  fecha_nacimiento: Date;
+  numero_telefono: string;
+  email: string; 
+  obra_social: String;
+  tutor_legal_id: String;
+};
+
+// Definición del tipo para la tabla de Tutores Legales
+export type TutorLegal = {
+  id: string;
+  dni: string;
+  nombre: string;
+  apellido: string;
+  relacionConPaciente: string;
+  telefono: string;
   email: string;
-  password: string;
+  direccion: string;
 };
 
-export type Customer = {
+// Definición del tipo para la tabla de Enfermedades
+export type Enfermedades = {
   id: string;
-  name: string;
-  email: string;
-  image_url: string;
+  idPaciente: string; // Referencia al paciente
+  nombre: string;
+  descripcion: string;
+  fechaDiagnostico: Date;
 };
 
-export type Invoice = {
+// Definición del tipo para la tabla de Alergias
+export type Alergias = {
   id: string;
-  customer_id: string;
-  amount: number;
-  date: string;
-  // In TypeScript, this is called a string union type.
-  // It means that the "status" property can only be one of the two strings: 'pending' or 'paid'.
-  status: 'pending' | 'paid';
+  idPaciente: string; // Referencia al paciente
+  nombre: string;
+  gravedad: string;
+  descripcion: string;
+  fechaDiagnostico: Date;
 };
 
-export type Revenue = {
-  month: string;
-  revenue: number;
-};
-
-export type LatestInvoice = {
+// Definición del tipo para la tabla de Medicaciones
+export type Medicacion = {
   id: string;
-  name: string;
-  image_url: string;
-  email: string;
-  amount: string;
+  idPaciente: string; // Referencia al paciente
+  nombre: string;
+  dosis: string;
+  frecuencia: string;
+  fechaInicio: Date;
+  fechaFin?: Date; // Puede ser opcional si el tratamiento es indefinido
 };
 
-// The database returns a number for amount, but we later format it to a string with the formatCurrency function
-export type LatestInvoiceRaw = Omit<LatestInvoice, 'amount'> & {
-  amount: number;
-};
-
-export type InvoicesTable = {
+// Definición del tipo para la tabla de Cirugías
+export type Cirugia = {
   id: string;
-  customer_id: string;
-  name: string;
-  email: string;
-  image_url: string;
-  date: string;
-  amount: number;
-  status: 'pending' | 'paid';
+  idPaciente: string; // Referencia al paciente
+  nombre: string;
+  fecha: Date;
+  descripcion: string;
+  resultado: string;
 };
 
-export type CustomersTableType = {
+// Definición del tipo para la tabla de Sesiones Dentales
+export type Consultas = {
   id: string;
-  name: string;
-  email: string;
-  image_url: string;
-  total_invoices: number;
-  total_pending: number;
-  total_paid: number;
+  paciente_id: string; // Referencia al paciente
+  fecha_consulta: Date;
+  motivo: string;
+  diagnostico: string;
+  tratamiento: string;
+  imagenes: string[]; // Almacena las URLs de las imágenes subidas
 };
 
-export type FormattedCustomersTable = {
+// Definición del tipo para la tabla de Tratamientos Dentales
+export type TratamientoDental = {
   id: string;
-  name: string;
-  email: string;
-  image_url: string;
-  total_invoices: number;
-  total_pending: string;
-  total_paid: string;
-};
-
-export type CustomerField = {
-  id: string;
-  name: string;
-};
-
-export type InvoiceForm = {
-  id: string;
-  customer_id: string;
-  amount: number;
-  status: 'pending' | 'paid';
+  paciente_id: string; // Referencia al paciente
+  nombre: string;
+  descripcion: string;
+  fechaInicio: Date;
+  fechaFin?: Date; // Puede ser opcional
+  resultado: string;
 };

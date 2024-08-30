@@ -1,15 +1,7 @@
 import { sql } from '@vercel/postgres';
-import {
-  CustomerField,
-  CustomersTableType,
-  InvoiceForm,
-  InvoicesTable,
-  LatestInvoiceRaw,
-  Revenue,
-} from './definitions';
-import { formatCurrency } from './utils';
+import {Pacientes, Consultas } from './definitions';
 
-export async function fetchRevenue() {
+export async function fetchPacientes() {
   try {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
@@ -17,201 +9,148 @@ export async function fetchRevenue() {
     // console.log('Fetching revenue data...');
     // await new Promise((resolve) => setTimeout(resolve, 3000));
 
-    const data = await sql<Revenue>`SELECT * FROM revenue`;
+    const data = await sql<Pacientes>`SELECT * FROM pacientes`;
 
     // console.log('Data fetch completed after 3 seconds.');
 
     return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch revenue data.');
+    throw new Error('No se han obtenido los datos de pacientes.');
   }
 }
 
-export async function fetchLatestInvoices() {
-  try {
-    const data = await sql<LatestInvoiceRaw>`
-      SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      ORDER BY invoices.date DESC
-      LIMIT 5`;
-
-    const latestInvoices = data.rows.map((invoice) => ({
-      ...invoice,
-      amount: formatCurrency(invoice.amount),
-    }));
-    return latestInvoices;
+export async function fetchConsultas() {
+  try{
+    const data = await sql<Consultas>`SELECT * FROM consultas`
+    return data.rows
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch the latest invoices.');
+    console.error("Database error:", error)
+    throw new Error("No se han obtenido los datos de consultas.")
   }
 }
 
-export async function fetchCardData() {
+export async function fetchPaciente(pacienteId: number) {
   try {
-    // You can probably combine these into a single SQL query
-    // However, we are intentionally splitting them to demonstrate
-    // how to initialize multiple queries in parallel with JS.
-    const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
-    const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
-    const invoiceStatusPromise = sql`SELECT
-         SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS "paid",
-         SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS "pending"
-         FROM invoices`;
-
-    const data = await Promise.all([
-      invoiceCountPromise,
-      customerCountPromise,
-      invoiceStatusPromise,
-    ]);
-
-    const numberOfInvoices = Number(data[0].rows[0].count ?? '0');
-    const numberOfCustomers = Number(data[1].rows[0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(data[2].rows[0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data[2].rows[0].pending ?? '0');
-
-    return {
-      numberOfCustomers,
-      numberOfInvoices,
-      totalPaidInvoices,
-      totalPendingInvoices,
-    };
-  } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch card data.');
-  }
-}
-
-const ITEMS_PER_PAGE = 6;
-export async function fetchFilteredInvoices(
-  query: string,
-  currentPage: number,
-) {
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
-
-  try {
-    const invoices = await sql<InvoicesTable>`
-      SELECT
-        invoices.id,
-        invoices.amount,
-        invoices.date,
-        invoices.status,
-        customers.name,
-        customers.email,
-        customers.image_url
-      FROM invoices
-      JOIN customers ON invoices.customer_id = customers.id
-      WHERE
-        customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`} OR
-        invoices.amount::text ILIKE ${`%${query}%`} OR
-        invoices.date::text ILIKE ${`%${query}%`} OR
-        invoices.status ILIKE ${`%${query}%`}
-      ORDER BY invoices.date DESC
-      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    const data = await sql<Consultas[]>`
+      SELECT 
+        p.id AS paciente_id,
+        p.nombre,
+        p.apellido,
+        p.dni,
+        ts.tipo AS tipo_sanguineo,
+        a.alergia,
+        m.medicamento,
+        m.dosis,
+        m.via,
+        m.frecuencia,
+        c.fecha_consulta,
+        c.motivo_consulta,
+        c.diagnostico,
+        c.tratamiento
+      FROM 
+        pacientes p
+      LEFT JOIN 
+        tipos_sanguineos ts ON p.tipo_sanguineo_id = ts.id
+      LEFT JOIN 
+        alergias a ON p.id = a.paciente_id
+      LEFT JOIN 
+        medicaciones m ON p.id = m.paciente_id
+      LEFT JOIN 
+        consultas c ON p.id = c.paciente_id
+      WHERE 
+        p.id = ${pacienteId};
     `;
-
-    return invoices.rows;
+    return data;
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoices.');
+    console.error("Database error:", error);
+    throw new Error("No se han obtenido los datos del paciente.");
   }
 }
 
-export async function fetchInvoicesPages(query: string) {
+export async function addPaciente(paciente: {
+  nombre: string;
+  apellido: string;
+  dni: string;
+  fecha_nacimiento: Date;
+  numero_telefono: string;
+  email: string; 
+  obra_social: string;
+  tutor_legal_id: string | null; // Si no siempre tienes un tutor legal, esto puede ser null
+  tipo_sanguineo_id: number;
+  alergias: string[];
+  medicaciones: {
+    medicamento: string;
+    dosis: string;
+    via: string;
+    frecuencia: string;
+  }[];
+  consultas: {
+    fecha_consulta: string;
+    motivo_consulta: string;
+    diagnostico: string;
+    tratamiento: string;
+  }[];
+}) {
   try {
-    const count = await sql`SELECT COUNT(*)
-    FROM invoices
-    JOIN customers ON invoices.customer_id = customers.id
-    WHERE
-      customers.name ILIKE ${`%${query}%`} OR
-      customers.email ILIKE ${`%${query}%`} OR
-      invoices.amount::text ILIKE ${`%${query}%`} OR
-      invoices.date::text ILIKE ${`%${query}%`} OR
-      invoices.status ILIKE ${`%${query}%`}
-  `;
+    // Inicia una transacción
+    await sql.begin(async (transaction) => {
+      // Inserta en la tabla pacientes
+      const pacienteResult = await transaction`
+        INSERT INTO pacientes (
+          nombre, 
+          apellido, 
+          dni, 
+          fecha_nacimiento, 
+          numero_telefono, 
+          email, 
+          obra_social, 
+          tutor_legal_id, 
+          tipo_sanguineo_id
+        ) VALUES (
+          ${paciente.nombre}, 
+          ${paciente.apellido}, 
+          ${paciente.dni}, 
+          ${paciente.fecha_nacimiento}, 
+          ${paciente.numero_telefono}, 
+          ${paciente.email}, 
+          ${paciente.obra_social}, 
+          ${paciente.tutor_legal_id}, 
+          ${paciente.tipo_sanguineo_id}
+        )
+        RETURNING id
+      `;
+      
+      const pacienteId = pacienteResult[0].id;
 
-    const totalPages = Math.ceil(Number(count.rows[0].count) / ITEMS_PER_PAGE);
-    return totalPages;
+      // Inserta en la tabla alergias
+      for (const alergia of paciente.alergias) {
+        await transaction`
+          INSERT INTO alergias (paciente_id, alergia)
+          VALUES (${pacienteId}, ${alergia})
+        `;
+      }
+
+      // Inserta en la tabla medicaciones
+      for (const medicacion of paciente.medicaciones) {
+        await transaction`
+          INSERT INTO medicaciones (paciente_id, medicamento, dosis, via, frecuencia)
+          VALUES (${pacienteId}, ${medicacion.medicamento}, ${medicacion.dosis}, ${medicacion.via}, ${medicacion.frecuencia})
+        `;
+      }
+
+      // Inserta en la tabla consultas
+      for (const consulta of paciente.consultas) {
+        await transaction`
+          INSERT INTO consultas (paciente_id, fecha_consulta, motivo_consulta, diagnostico, tratamiento)
+          VALUES (${pacienteId}, ${consulta.fecha_consulta}, ${consulta.motivo_consulta}, ${consulta.diagnostico}, ${consulta.tratamiento})
+        `;
+      }
+    });
+
+    return { success: true, message: "Paciente agregado exitosamente." };
   } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch total number of invoices.');
-  }
-}
-
-export async function fetchInvoiceById(id: string) {
-  try {
-    const data = await sql<InvoiceForm>`
-      SELECT
-        invoices.id,
-        invoices.customer_id,
-        invoices.amount,
-        invoices.status
-      FROM invoices
-      WHERE invoices.id = ${id};
-    `;
-
-    const invoice = data.rows.map((invoice) => ({
-      ...invoice,
-      // Convert amount from cents to dollars
-      amount: invoice.amount / 100,
-    }));
-
-    return invoice[0];
-  } catch (error) {
-    console.error('Database Error:', error);
-    throw new Error('Failed to fetch invoice.');
-  }
-}
-
-export async function fetchCustomers() {
-  try {
-    const data = await sql<CustomerField>`
-      SELECT
-        id,
-        name
-      FROM customers
-      ORDER BY name ASC
-    `;
-
-    const customers = data.rows;
-    return customers;
-  } catch (err) {
-    console.error('Database Error:', err);
-    throw new Error('Failed to fetch all customers.');
-  }
-}
-
-export async function fetchFilteredCustomers(query: string) {
-  try {
-    const data = await sql<CustomersTableType>`
-		SELECT
-		  customers.id,
-		  customers.name,
-		  customers.email,
-		  customers.image_url,
-		  COUNT(invoices.id) AS total_invoices,
-		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
-		FROM customers
-		LEFT JOIN invoices ON customers.id = invoices.customer_id
-		WHERE
-		  customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`}
-		GROUP BY customers.id, customers.name, customers.email, customers.image_url
-		ORDER BY customers.name ASC
-	  `;
-
-    const customers = data.rows.map((customer) => ({
-      ...customer,
-      total_pending: formatCurrency(customer.total_pending),
-      total_paid: formatCurrency(customer.total_paid),
-    }));
-
-    return customers;
-  } catch (err) {
-    console.error('Database Error:', err);
-    throw new Error('Failed to fetch customer table.');
+    console.error("Database error:", error);
+    throw new Error("Error al agregar el paciente a la base de datos.");
   }
 }
