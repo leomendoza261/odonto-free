@@ -28,6 +28,7 @@ export default async function TablaConsultas() {
     },
   ]);
 
+
   const [showModal, setShowModal] = useState(false);
   const [searchDate, setSearchDate] = useState('');
 
@@ -95,7 +96,7 @@ export default async function TablaConsultas() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredConsultas.map((consulta) => (
+            {consultas.map((consulta) => (
               <tr key={consulta.id} className="bg-white text-sm hover:bg-blue-400">
                 <td className="px-4 py-3">
                   <Link href={"http://localhost:3000/dashboard/sesiones/consulta"}>

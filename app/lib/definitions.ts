@@ -69,10 +69,12 @@ export type Consultas = {
   id: string;
   paciente_id: string; // Referencia al paciente
   fecha_consulta: Date;
+  hora_consulta: string
   motivo: string;
   diagnostico: string;
   tratamiento: string;
   imagenes: string[]; // Almacena las URLs de las imágenes subidas
+  notas: string
 };
 
 // Definición del tipo para la tabla de Tratamientos Dentales

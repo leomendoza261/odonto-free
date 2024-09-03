@@ -3,16 +3,7 @@ import {Pacientes, Consultas } from './definitions';
 
 export async function fetchPacientes() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
     const data = await sql<Pacientes>`SELECT * FROM pacientes`;
-
-    // console.log('Data fetch completed after 3 seconds.');
-
     return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
@@ -74,9 +65,9 @@ export async function addPaciente(paciente: {
   dni: string;
   fecha_nacimiento: Date;
   numero_telefono: string;
-  email: string; 
+  email: string;
   obra_social: string;
-  tutor_legal_id: string | null; // Si no siempre tienes un tutor legal, esto puede ser null
+  tutor_legal_id: string | null;
   tipo_sanguineo_id: number;
   alergias: string[];
   medicaciones: {
@@ -92,65 +83,78 @@ export async function addPaciente(paciente: {
     tratamiento: string;
   }[];
 }) {
+  const client = await sql({ connectionString: process.env.POSTGRES_URL }).connect(); // Conectar al cliente de la base de datos
+
   try {
     // Inicia una transacción
-    await sql.begin(async (transaction) => {
-      // Inserta en la tabla pacientes
-      const pacienteResult = await transaction`
-        INSERT INTO pacientes (
-          nombre, 
-          apellido, 
-          dni, 
-          fecha_nacimiento, 
-          numero_telefono, 
-          email, 
-          obra_social, 
-          tutor_legal_id, 
-          tipo_sanguineo_id
-        ) VALUES (
-          ${paciente.nombre}, 
-          ${paciente.apellido}, 
-          ${paciente.dni}, 
-          ${paciente.fecha_nacimiento}, 
-          ${paciente.numero_telefono}, 
-          ${paciente.email}, 
-          ${paciente.obra_social}, 
-          ${paciente.tutor_legal_id}, 
-          ${paciente.tipo_sanguineo_id}
-        )
-        RETURNING id
-      `;
-      
-      const pacienteId = pacienteResult[0].id;
+    await client.query('BEGIN');
 
-      // Inserta en la tabla alergias
-      for (const alergia of paciente.alergias) {
-        await transaction`
-          INSERT INTO alergias (paciente_id, alergia)
-          VALUES (${pacienteId}, ${alergia})
-        `;
-      }
+    // Inserta en la tabla pacientes
+    const pacienteResult = await client.query(`
+      INSERT INTO pacientes (
+        nombre, 
+        apellido, 
+        dni, 
+        fecha_nacimiento, 
+        numero_telefono, 
+        email, 
+        obra_social, 
+        tutor_legal_id, 
+        tipo_sanguineo_id
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9
+      )
+      RETURNING id
+    `, [
+      paciente.nombre, 
+      paciente.apellido, 
+      paciente.dni, 
+      paciente.fecha_nacimiento, 
+      paciente.numero_telefono, 
+      paciente.email, 
+      paciente.obra_social, 
+      paciente.tutor_legal_id, 
+      paciente.tipo_sanguineo_id
+    ]);
 
-      // Inserta en la tabla medicaciones
-      for (const medicacion of paciente.medicaciones) {
-        await transaction`
-          INSERT INTO medicaciones (paciente_id, medicamento, dosis, via, frecuencia)
-          VALUES (${pacienteId}, ${medicacion.medicamento}, ${medicacion.dosis}, ${medicacion.via}, ${medicacion.frecuencia})
-        `;
-      }
+    const pacienteId = pacienteResult.rows[0].id;
 
-      // Inserta en la tabla consultas
-      for (const consulta of paciente.consultas) {
-        await transaction`
-          INSERT INTO consultas (paciente_id, fecha_consulta, motivo_consulta, diagnostico, tratamiento)
-          VALUES (${pacienteId}, ${consulta.fecha_consulta}, ${consulta.motivo_consulta}, ${consulta.diagnostico}, ${consulta.tratamiento})
-        `;
-      }
-    });
+    // Inserta en la tabla alergias
+    for (const alergia of paciente.alergias) {
+      await client.query(`
+        INSERT INTO alergias (paciente_id, alergia)
+        VALUES ($1, $2)
+      `, [pacienteId, alergia]);
+    }
+
+    // Inserta en la tabla medicaciones
+    for (const medicacion of paciente.medicaciones) {
+      await client.query(`
+        INSERT INTO medicaciones (paciente_id, medicamento, dosis, via, frecuencia)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [pacienteId, medicacion.medicamento, medicacion.dosis, medicacion.via, medicacion.frecuencia]);
+    }
+
+    // Inserta en la tabla consultas
+    for (const consulta of paciente.consultas) {
+      await client.query(`
+        INSERT INTO consultas (paciente_id, fecha_consulta, motivo_consulta, diagnostico, tratamiento)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [pacienteId, consulta.fecha_consulta, consulta.motivo_consulta, consulta.diagnostico, consulta.tratamiento]);
+    }
+
+    // Confirma la transacción
+    await client.query('COMMIT');
 
     return { success: true, message: "Paciente agregado exitosamente." };
   } catch (error) {
+    // En caso de error, deshace la transacción
+    await client.query('ROLLBACK');
     console.error("Database error:", error);
     throw new Error("Error al agregar el paciente a la base de datos.");
+  } finally {
+    // Libera el cliente de la base de datos
+    client.release();
   }
 }
+

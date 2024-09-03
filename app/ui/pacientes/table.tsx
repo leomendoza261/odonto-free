@@ -1,271 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
-import ModalAgregarPaciente from "./modal";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import ModalAgregarPaciente from "./modal";
 import { MagnifyingGlassCircleIcon } from "@heroicons/react/24/outline";
-import { addPaciente } from "@/app/lib/data";
+import { addPaciente, fetchPacientes } from "@/app/lib/data";
 
 export default function TablaPacientes() {
-  const [pacientes, setPacientes] = useState([
-    {
-      id: 1,
-      dni: '12345678',
-      nombre: 'Juanito',
-      apellido: 'Pérez',
-      tipo_sangre: 'A+',
-      fecha_nacimiento: new Date('2005-07-12T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: null,
-    },
-    {
-      id: 2,
-      dni: '40749261',
-      nombre: 'Leo',
-      apellido: 'Mendoza',
-      tipo_sangre: 'O+',
-      fecha_nacimiento: new Date('1997-03-12T15:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 3,
-      dni: '40749301',
-      nombre: 'Adrian',
-      apellido: 'Usqueda',
-      tipo_sangre: 'O+',
-      fecha_nacimiento: new Date('1997-06-12T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 4,
-      dni: '38749245',
-      nombre: 'Camila',
-      apellido: 'Gómez',
-      tipo_sangre: 'B+',
-      fecha_nacimiento: new Date('2010-11-23T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '30749255',
-    },
-    {
-      id: 5,
-      dni: '27549322',
-      nombre: 'Martín',
-      apellido: 'Rodríguez',
-      tipo_sangre: 'AB+',
-      fecha_nacimiento: new Date('1982-09-16T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 6,
-      dni: '33547281',
-      nombre: 'Lucía',
-      apellido: 'Martínez',
-      tipo_sangre: 'A-',
-      fecha_nacimiento: new Date('2008-05-02T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '30547281',
-    },
-    {
-      id: 7,
-      dni: '20458219',
-      nombre: 'Joaquín',
-      apellido: 'López',
-      tipo_sangre: 'B-',
-      fecha_nacimiento: new Date('1974-01-17T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 8,
-      dni: '44548923',
-      nombre: 'Sofía',
-      apellido: 'Fernández',
-      tipo_sangre: 'O-',
-      fecha_nacimiento: new Date('2015-04-08T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '34548923',
-    },
-    {
-      id: 9,
-      dni: '33547282',
-      nombre: 'Emilio',
-      apellido: 'Ruiz',
-      tipo_sangre: 'A+',
-      fecha_nacimiento: new Date('1990-12-14T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 10,
-      dni: '24578292',
-      nombre: 'Valentina',
-      apellido: 'Pereyra',
-      tipo_sangre: 'AB-',
-      fecha_nacimiento: new Date('2007-06-29T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '30578292',
-    },
-    {
-      id: 11,
-      dni: '25678943',
-      nombre: 'Santiago',
-      apellido: 'Gutiérrez',
-      tipo_sangre: 'B+',
-      fecha_nacimiento: new Date('2003-03-01T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 12,
-      dni: '27894563',
-      nombre: 'Carla',
-      apellido: 'Sánchez',
-      tipo_sangre: 'O+',
-      fecha_nacimiento: new Date('2011-08-15T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '27894564',
-    },
-    {
-      id: 13,
-      dni: '39876542',
-      nombre: 'Lucas',
-      apellido: 'Ramírez',
-      tipo_sangre: 'A-',
-      fecha_nacimiento: new Date('2000-05-10T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 14,
-      dni: '40749502',
-      nombre: 'Elena',
-      apellido: 'Domínguez',
-      tipo_sangre: 'B+',
-      fecha_nacimiento: new Date('1999-10-21T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 15,
-      dni: '30749295',
-      nombre: 'Mateo',
-      apellido: 'Herrera',
-      tipo_sangre: 'AB+',
-      fecha_nacimiento: new Date('2009-01-25T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '20749295',
-    },
-    {
-      id: 16,
-      dni: '25487632',
-      nombre: 'Mía',
-      apellido: 'Medina',
-      tipo_sangre: 'O-',
-      fecha_nacimiento: new Date('2004-07-19T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 17,
-      dni: '33547283',
-      nombre: 'Sebastián',
-      apellido: 'Arias',
-      tipo_sangre: 'A+',
-      fecha_nacimiento: new Date('2013-11-30T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '33547284',
-    },
-    {
-      id: 18,
-      dni: '39876543',
-      nombre: 'Florencia',
-      apellido: 'Silva',
-      tipo_sangre: 'B+',
-      fecha_nacimiento: new Date('2001-02-13T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 19,
-      dni: '24578293',
-      nombre: 'Tomás',
-      apellido: 'Vega',
-      tipo_sangre: 'AB-',
-      fecha_nacimiento: new Date('2012-03-05T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '24578294',
-    },
-    {
-      id: 20,
-      dni: '40749302',
-      nombre: 'Gabriela',
-      apellido: 'Molina',
-      tipo_sangre: 'O+',
-      fecha_nacimiento: new Date('1996-06-22T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 21,
-      dni: '12345679',
-      nombre: 'Nicolás',
-      apellido: 'Paz',
-      tipo_sangre: 'A+',
-      fecha_nacimiento: new Date('1995-11-01T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 22,
-      dni: '40749262',
-      nombre: 'Paula',
-      apellido: 'Quinteros',
-      tipo_sangre: 'O+',
-      fecha_nacimiento: new Date('2008-12-20T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '30749263',
-    },
-    {
-      id: 23,
-      dni: '30749303',
-      nombre: 'Alejandro',
-      apellido: 'Córdoba',
-      tipo_sangre: 'O+',
-      fecha_nacimiento: new Date('1998-04-15T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    },
-    {
-      id: 24,
-      dni: '40749503',
-      nombre: 'Mariana',
-      apellido: 'Álvarez',
-      tipo_sangre: 'B+',
-      fecha_nacimiento: new Date('2014-09-10T03:00:00.000Z'),
-      menor_edad: true,
-      tutor_legal_id: '30749504',
-    },
-    {
-      id: 25,
-      dni: '38749246',
-      nombre: 'Ricardo',
-      apellido: 'Luna',
-      tipo_sangre: 'A+',
-      fecha_nacimiento: new Date('1987-03-07T03:00:00.000Z'),
-      menor_edad: false,
-      tutor_legal_id: null,
-    }
-]);
-
+  const [pacientes, setPacientes] = useState([]);
   const [dniBusqueda, setDniBusqueda] = useState("");
   const [showModal, setShowModal] = useState(false);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await fetchPacientes();
+        setPacientes(data);
+      } catch (error) {
+        console.error("Error fetching patients:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const handleAddPaciente = (nuevoPaciente) => {
-    addPaciente(nuevoPaciente)
-    /* setPacientes((prevPacientes) => [...prevPacientes, nuevoPaciente]); */
+    addPaciente(nuevoPaciente);
+    setPacientes((prevPacientes) => [...prevPacientes, nuevoPaciente]);
   };
 
   const handleSearchChange = (event) => {
